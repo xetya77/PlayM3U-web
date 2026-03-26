@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlayM3U — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0D1B2A;
+      color: #E2E8F0;
+      font-family: Inter, system-ui, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      padding: 24px;
+    }
+    .icon { font-size: 64px; opacity: 0.4; }
+    h1 { font-size: 1.5rem; font-weight: 600; color: #94A3B8; }
+    p  { color: #64748B; font-size: 0.9rem; max-width: 300px; line-height: 1.6; }
+    button {
+      margin-top: 8px;
+      padding: 10px 24px;
+      background: #0EA5E9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="icon">📡</div>
+  <h1>You're Offline</h1>
+  <p>PlayM3U needs a connection to stream channels. Previously cached playlists may still be available when you reconnect.</p>
+  <button onclick="location.reload()">Try Again</button>
+</body>
+</html>

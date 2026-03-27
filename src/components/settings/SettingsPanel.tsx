@@ -1,196 +1,139 @@
 'use client';
-
-import { useSettingsStore, useUIStore, usePlaylistStore } from '@/store';
-import { Toggle, Button } from '@/components/ui/primitives';
+import { useSettingsStore, useUIStore } from '@/store';
 import type { OverlayStyle, Resolution, RadioBgMode, RadioCoverMode } from '@/types';
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Row({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-3">
-      <p className="text-xs font-semibold text-muted uppercase tracking-wider px-1">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-function OptionRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2 border-b border-white/5 last:border-0">
-      <span className="text-sm text-slate-300">{label}</span>
+    <div className="flex items-center justify-between py-4 border-b" style={{borderColor:'#1C2F3A'}}>
+      <div className="flex-1 pr-4">
+        <p className="font-semibold text-white">{label}</p>
+        {sub && <p className="text-xs mt-0.5" style={{color:'#7A9BA3'}}>{sub}</p>}
+      </div>
       <div className="flex-shrink-0">{children}</div>
     </div>
   );
 }
 
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div onClick={() => onChange(!on)} className="relative cursor-pointer"
+      style={{width:52, height:28}}>
+      <div className="absolute inset-0 rounded-full transition-colors"
+        style={{background: on ? '#0A5055' : '#2A3F4A'}} />
+      <div className="absolute top-1 transition-all rounded-full bg-white shadow"
+        style={{width:20, height:20, left: on ? 28 : 4}} />
+    </div>
+  );
+}
+
 function Chips<T extends string>({ value, options, onChange }: {
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
+  value: T; options: {v:T; l:string}[]; onChange:(v:T)=>void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-            value === o.value ? 'bg-accent text-white' : 'bg-surface text-muted hover:text-white'
-          }`}
-        >
-          {o.label}
+    <div className="flex flex-wrap gap-2 mt-3">
+      {options.map(o => (
+        <button key={o.v} onClick={() => onChange(o.v)}
+          className="px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+          style={{background: value===o.v ? '#FF5B04' : '#1C2F3A',
+            color: value===o.v ? 'white' : '#7A9BA3'}}>
+          {o.l}
         </button>
       ))}
     </div>
   );
 }
 
-export function SettingsPanel() {
-  const { settingsPanelOpen, setSettingsPanelOpen, navigateTo } = useUIStore();
-  const { settings, updateSettings } = useSettingsStore();
-  const { getCurrentPlaylist } = usePlaylistStore();
-  const pl = getCurrentPlaylist();
-
-  if (!settingsPanelOpen) return null;
+export function SettingsPage() {
+  const { navigateBack } = useUIStore();
+  const { settings: s, updateSettings: u } = useSettingsStore();
 
   return (
+    <div className="flex flex-col h-full page-enter" style={{background:'#16232A'}}>
+      <div className="flex items-center gap-3 px-5 pt-6 pb-4 border-b" style={{borderColor:'#1C2F3A'}}>
+        <button onClick={navigateBack}
+          className="w-9 h-9 flex items-center justify-center rounded-full"
+          style={{color:'#FF5B04'}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 className="flex-1 text-center text-lg font-black text-white">Settings</h2>
+        <div className="w-9"/>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5">
+        <Row label="Video Quality" sub={s.resolution === 'auto' ? 'Automatic' : s.resolution === 'lowest' ? 'Lowest' : 'Highest'}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A9BA3" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </Row>
+        <div className="py-2"><Chips<Resolution> value={s.resolution}
+          options={[{v:'auto',l:'Auto'},{v:'lowest',l:'Lowest'},{v:'highest',l:'Highest'}]}
+          onChange={v => u({resolution:v})} /></div>
+
+        <Row label="Buffer size" sub="Larger buffer reduces interruptions but uses more memory">
+          <span className="font-bold text-white">{s.bufferSecs} seconds</span>
+        </Row>
+        <div className="py-2 flex gap-2">
+          {[10,30,60,120].map(v => (
+            <button key={v} onClick={() => u({bufferSecs:v})}
+              className="px-4 py-2 rounded-xl text-sm font-bold"
+              style={{background: s.bufferSecs===v ? '#FF5B04':'#1C2F3A',
+                color: s.bufferSecs===v ? 'white':'#7A9BA3'}}>
+              {v<60 ? `${v}s` : `${v/60}m`}
+            </button>
+          ))}
+        </div>
+
+        <Row label="Resume on startup" sub="Auto-play last watched channel when opening app">
+          <Toggle on={s.loadLastChannel} onChange={v => u({loadLastChannel:v})} />
+        </Row>
+        <Row label="Subtitles" sub="Show subtitles when available">
+          <Toggle on={s.subtitleEnabled} onChange={v => u({subtitleEnabled:v})} />
+        </Row>
+        <Row label="Landscape Orientation" sub="Always force landscape mode">
+          <Toggle on={s.forceLandscape} onChange={v => u({forceLandscape:v})} />
+        </Row>
+
+        <Row label="Font Size" sub="Adjust text size for better readability on TV">
+          <span className="font-black text-white">{s.fontSizePct}%</span>
+        </Row>
+        <div className="py-2 flex gap-2 flex-wrap">
+          {[100,120,140,160,180,200].map(v => (
+            <button key={v} onClick={() => u({fontSizePct:v})}
+              className="px-3 py-2 rounded-xl text-sm font-bold"
+              style={{background: s.fontSizePct===v ? '#FF5B04':'#1C2F3A',
+                color: s.fontSizePct===v ? 'white':'#7A9BA3'}}>
+              {v}%
+            </button>
+          ))}
+        </div>
+
+        <Row label="Overlay Style" sub="Channel info display style">
+          <span className="font-bold capitalize" style={{color:'#7A9BA3'}}>{s.overlayStyle}</span>
+        </Row>
+        <div className="py-2"><Chips<OverlayStyle> value={s.overlayStyle}
+          options={[{v:'default',l:'Default'},{v:'wide',l:'Wide'},{v:'compact',l:'Compact'},{v:'detail',l:'Detail'}]}
+          onChange={v => u({overlayStyle:v})} /></div>
+
+        <Row label="Radio Background" sub="Visual style for radio channels">
+          <span/>
+        </Row>
+        <div className="py-2"><Chips<RadioBgMode> value={s.radioBgMode}
+          options={[{v:'aurora_half',l:'Aurora'},{v:'breathing',l:'Breathing'},{v:'solid',l:'Solid'},{v:'blur',l:'Blur'},{v:'sweep',l:'Sweep'}]}
+          onChange={v => u({radioBgMode:v})} /></div>
+
+        <div className="h-8" />
+      </div>
+    </div>
+  );
+}
+
+/* Slide-over panel version for use inside player */
+export function SettingsPanel() {
+  const { settingsPanelOpen, setSettingsPanelOpen } = useUIStore();
+  if (!settingsPanelOpen) return null;
+  return (
     <>
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 z-30 animate-fade-in"
-        onClick={() => setSettingsPanelOpen(false)}
-      />
-      {/* Panel */}
-      <div className="absolute top-0 right-0 bottom-0 w-80 bg-bg-deep border-l border-white/10 z-40 overflow-y-auto animate-slide-right">
-        <div className="sticky top-0 bg-bg-deep border-b border-white/10 px-5 py-4 flex items-center justify-between">
-          <h3 className="font-semibold text-white">Settings</h3>
-          <button onClick={() => setSettingsPanelOpen(false)} className="text-muted hover:text-white transition-colors p-1">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-
-        <div className="p-5 space-y-6">
-          {/* Playlist info */}
-          {pl && (
-            <div className="glass-card rounded-xl p-3 text-sm">
-              <p className="text-muted text-xs">Current playlist</p>
-              <p className="text-white font-medium mt-0.5">{pl.name}</p>
-              <p className="text-muted text-xs mt-0.5">{pl.channels.length.toLocaleString()} channels</p>
-            </div>
-          )}
-
-          {/* Playback */}
-          <Section title="Playback">
-            <OptionRow label="Resolution">
-              <Chips<Resolution>
-                value={settings.resolution}
-                options={[
-                  { value: 'auto', label: 'Auto' },
-                  { value: 'lowest', label: 'Low' },
-                  { value: 'highest', label: 'High' },
-                ]}
-                onChange={(v) => updateSettings({ resolution: v })}
-              />
-            </OptionRow>
-            <OptionRow label="Buffer">
-              <Chips<string>
-                value={String(settings.bufferSecs)}
-                options={[
-                  { value: '10', label: '10s' },
-                  { value: '30', label: '30s' },
-                  { value: '60', label: '60s' },
-                  { value: '120', label: '2min' },
-                ]}
-                onChange={(v) => updateSettings({ bufferSecs: Number(v) })}
-              />
-            </OptionRow>
-            <OptionRow label="Load last channel">
-              <Toggle checked={settings.loadLastChannel} onChange={(v) => updateSettings({ loadLastChannel: v })} />
-            </OptionRow>
-            <OptionRow label="Subtitles">
-              <Toggle checked={settings.subtitleEnabled} onChange={(v) => updateSettings({ subtitleEnabled: v })} />
-            </OptionRow>
-          </Section>
-
-          {/* OSD Overlay */}
-          <Section title="Channel Info Overlay">
-            <Chips<OverlayStyle>
-              value={settings.overlayStyle}
-              options={[
-                { value: 'default', label: 'Default' },
-                { value: 'wide', label: 'Wide' },
-                { value: 'compact', label: 'Compact' },
-                { value: 'detail', label: 'Detail' },
-              ]}
-              onChange={(v) => updateSettings({ overlayStyle: v })}
-            />
-          </Section>
-
-          {/* Radio */}
-          <Section title="Radio Background">
-            <Chips<RadioBgMode>
-              value={settings.radioBgMode}
-              options={[
-                { value: 'aurora_half', label: 'Aurora' },
-                { value: 'aurora_full', label: 'Aurora Full' },
-                { value: 'breathing', label: 'Breathing' },
-                { value: 'solid', label: 'Solid' },
-                { value: 'sweep', label: 'Sweep' },
-                { value: 'blur', label: 'Blur' },
-              ]}
-              onChange={(v) => updateSettings({ radioBgMode: v })}
-            />
-          </Section>
-
-          <Section title="Radio Cover">
-            <Chips<RadioCoverMode>
-              value={settings.radioCoverMode}
-              options={[
-                { value: 'vinyl_art', label: 'Vinyl' },
-                { value: 'vinyl_logo', label: 'Vinyl Logo' },
-                { value: 'album_art', label: 'Album Art' },
-                { value: 'logo', label: 'Logo' },
-              ]}
-              onChange={(v) => updateSettings({ radioCoverMode: v })}
-            />
-          </Section>
-
-          {/* UI */}
-          <Section title="Interface">
-            <OptionRow label="Nav hint always visible">
-              <Toggle checked={settings.navHintAlways} onChange={(v) => updateSettings({ navHintAlways: v })} />
-            </OptionRow>
-            <OptionRow label="Font size">
-              <Chips<string>
-                value={String(settings.fontSizePct)}
-                options={[
-                  { value: '100', label: '100%' },
-                  { value: '120', label: '120%' },
-                  { value: '140', label: '140%' },
-                ]}
-                onChange={(v) => updateSettings({ fontSizePct: Number(v) })}
-              />
-            </OptionRow>
-          </Section>
-
-          {/* Navigation */}
-          <Section title="Playlists">
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => { setSettingsPanelOpen(false); navigateTo('playlists'); }}
-            >
-              Manage Playlists
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => { setSettingsPanelOpen(false); navigateTo('source'); }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add New Playlist
-            </Button>
-          </Section>
-        </div>
+      <div className="absolute inset-0 bg-black/50 z-30" onClick={() => setSettingsPanelOpen(false)} />
+      <div className="absolute top-0 right-0 bottom-0 w-80 z-40 overflow-y-auto" style={{background:'#16232A'}}>
+        <SettingsPage />
       </div>
     </>
   );

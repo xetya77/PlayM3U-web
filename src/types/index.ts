@@ -79,6 +79,7 @@ export type AppPage =
   | 'name_input'
   | 'playlists'
   | 'settings'
-  | 'player';
+  | 'player'
+  | 'app_settings';
 
 export type CategoryFilter = 'all' | 'tv' | 'radio' | string;
